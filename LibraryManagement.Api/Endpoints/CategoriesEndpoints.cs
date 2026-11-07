@@ -18,8 +18,26 @@ public static class CategoriesEndpoints
             .MapGroup("/api/categories")
             .WithTags("Categories");
 
+        group.MapGet("/{id:int}", GetbyId)
+            .Produces<Category>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
+        
         group.MapGet("/", GetAll);
     }
+
+    private static async Task<IResult> GetbyId(int id)
+    {
+        var category = _categories.FirstOrDefault(
+            category => category.id  == id);
+
+        if (category == null) 
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(category);
+    }
+
 
     private static async Task<IResult> GetAll() 
     {
