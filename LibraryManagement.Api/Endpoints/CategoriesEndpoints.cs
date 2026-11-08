@@ -1,4 +1,5 @@
 ﻿using LibraryManagement.Api.Entities;
+using Microsoft.AspNetCore.Http.HttpResults;
 using System.Reflection.Metadata.Ecma335;
 
 namespace LibraryManagement.Api.Endpoints;
@@ -19,29 +20,58 @@ public static class CategoriesEndpoints
             .WithTags("Categories");
 
         group.MapGet("/{id:int}", GetbyId)
-            .Produces<Category>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status404NotFound);
+            .WithName("GetCategoryById");
+            //.Produces<Category>(StatusCodes.Status200OK)
+            //.Produces(StatusCodes.Status404NotFound);
         
         group.MapGet("/", GetAll);
+
+        group.MapPost("/", Create);
     }
 
-    private static async Task<IResult> GetbyId(int id)
+    private static async Task<Results<Ok<Category>, NotFound>> GetbyId(int id)
     {
         var category = _categories.FirstOrDefault(
             category => category.id  == id);
 
         if (category == null) 
         {
-            return Results.NotFound();
+            return TypedResults.NotFound();
         }
 
-        return Results.Ok(category);
+        return TypedResults.Ok(category);
     }
 
 
-    private static async Task<IResult> GetAll() 
+    private static async Task<Ok<List<Category>>> GetAll() 
     {
         var categories = _categories;
-        return Results.Ok(categories);
+        return TypedResults.Ok(categories);
+    }
+
+    private static async Task<Results<CreatedAtRoute<Category>, Conflict, BadRequest>> Create(
+        Category category)
+    {
+        if (string.IsNullOrWhiteSpace(category.Name)) 
+        {
+            return TypedResults.BadRequest();
+        }
+
+        if (_categories.Any(existingCategory => existingCategory.id == category.id)) 
+        {
+            return TypedResults.Conflict();
+        }
+
+        if (_categories.Any(existingCategory => existingCategory.Name == category.Name))
+        {
+            return TypedResults.Conflict();
+        }
+
+        _categories.Add(category);
+
+        return TypedResults.CreatedAtRoute(
+            category,
+            "GetCategoryById",
+            new { id = category.id });
     }
 }
