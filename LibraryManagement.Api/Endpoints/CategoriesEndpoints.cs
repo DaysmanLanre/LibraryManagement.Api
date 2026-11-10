@@ -28,6 +28,14 @@ public static class CategoriesEndpoints
         group.MapPost("/", Create)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
+
+        group.MapPut("/{id:int}", Update)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        group.MapDelete("/{id:int}", Delete)
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
     private static async Task<Results<Ok<Category>, ProblemHttpResult>> GetbyId(int id)
@@ -82,5 +90,57 @@ public static class CategoriesEndpoints
             category,
             "GetCategoryById",
             new { id = category.id });
+    }
+
+    private static async Task<Results<Ok<Category>, ProblemHttpResult>> Update(
+        int id,
+        Category updatedCategory)
+    {
+        if (string.IsNullOrWhiteSpace(updatedCategory.Name)) 
+        {
+            return TypedResults.Problem(
+                detail: "Category name cannot be empty.",
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var existingCategory = _categories.FirstOrDefault(
+            category => category.id == id);
+
+        if (existingCategory is null) 
+        {
+            return TypedResults.Problem(
+                detail: $"A category with id {id} has not been found.",
+                statusCode: StatusCodes.Status404NotFound);
+        }
+
+        if(_categories.Any(category =>
+            category.id != id &&
+            category.Name == updatedCategory.Name)) 
+        {
+            return TypedResults.Problem(
+                detail: $"A category with name {updatedCategory.Name} already exists.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
+
+        existingCategory.Name = updatedCategory.Name;
+
+        return TypedResults.Ok(existingCategory);
+    } 
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> Delete(int id) 
+    {
+        var categoryToBeDeleted = _categories.FirstOrDefault(
+            category => category.id == id);
+
+        if (categoryToBeDeleted is null) 
+        {
+            return TypedResults.Problem(
+                detail: $"A category with Id {id} has not been found.",
+                statusCode: StatusCodes.Status404NotFound);
+        }
+
+        _categories.Remove(categoryToBeDeleted);
+
+        return TypedResults.NoContent();
     }
 }
