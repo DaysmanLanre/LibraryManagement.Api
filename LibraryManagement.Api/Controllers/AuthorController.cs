@@ -16,11 +16,55 @@ public class AuthorController : ControllerBase
 
         ];
 
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(Authors), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Authors>> GetById(int id)
+    {
+        var author = _authors.FirstOrDefault(author => author.Id == id);
+
+        if (author is null)
+        {
+            return Problem(
+                detail: $"An author with ID {id} was not found.",
+                statusCode: StatusCodes.Status404NotFound);
+        }
+
+        return Ok(author);
+    }
+
+
     [HttpGet]
+    [ProducesResponseType(typeof(List<Authors>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<Authors>>> GetAll()
     {
         return Ok(_authors);
     }
 
+    [HttpPost]
+    [ProducesResponseType(typeof(Authors), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<Authors>> Create (Authors authors)
+    {
+        if(string.IsNullOrWhiteSpace(authors.FirstName) || string.IsNullOrWhiteSpace(authors.LastName))
+        {
+            return Problem(
+                detail: $"Author's first name and last name cannot be empty.",
+                statusCode: StatusCodes.Status400BadRequest);
+        }
 
+        if (_authors.Any(exisitingAuthor => exisitingAuthor.Id == authors.Id))
+        {
+            return Problem(
+                detail: $"Author with ID {authors.Id} already exists.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
+
+        _authors.Add(authors);
+        return CreatedAtAction(
+            nameof(GetById), 
+            new { id = authors.Id }, 
+            authors);
+    }
 }
