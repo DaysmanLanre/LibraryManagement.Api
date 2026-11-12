@@ -96,7 +96,7 @@ public static class CategoriesEndpoints
         int id,
         Category updatedCategory)
     {
-        if (string.IsNullOrWhiteSpace(updatedCategory.Name)) 
+        if (string.IsNullOrWhiteSpace(updatedCategory.Name))   
         {
             return TypedResults.Problem(
                 detail: "Category name cannot be empty.",
