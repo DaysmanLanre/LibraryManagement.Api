@@ -67,4 +67,57 @@ public class AuthorController : ControllerBase
             new { id = authors.Id }, 
             authors);
     }
+
+
+
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(Authors), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Authors>> Update(int id, Authors authors)
+    {
+        if (string.IsNullOrWhiteSpace(authors.FirstName) || string.IsNullOrWhiteSpace(authors.LastName))
+        {
+            return Problem(
+                detail: "Author's first name and last name cannot be empty.",
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var existingAuthor = _authors.FirstOrDefault(author => author.Id == id);
+
+        if (existingAuthor is null)
+        {
+            return Problem(
+                detail: $"An author with ID {id} was not found.",
+                statusCode: StatusCodes.Status404NotFound);
+        }
+
+        existingAuthor.FirstName = authors.FirstName;
+        existingAuthor.LastName = authors.LastName;
+        existingAuthor.YearofBirth = authors.YearofBirth;
+
+        return Ok(existingAuthor);
+    }
+
+
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> Delete(int id)
+    {
+        var authorToBeDeleted = _authors.FirstOrDefault(author => author.Id == id);
+
+        if (authorToBeDeleted is null)
+        {
+            return Problem(
+                detail: $"An author with ID {id} was not found.",
+                statusCode: StatusCodes.Status404NotFound);
+        }
+
+        _authors.Remove(authorToBeDeleted);
+
+        return NoContent();
+    }
+
+
 }
